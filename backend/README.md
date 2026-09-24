@@ -1,5 +1,6 @@
 # PulseBid Backend
 
+<!-- TODO: Insert CI Status Badge Here (e.g. [![Backend CI](https://github.com/Sahusateesh8737/PulseBid/actions/workflows/backend-ci.yml/badge.svg?branch=main)](...)) -->
 This is the backend foundation for a multi-tenant, real-time auction platform.
 
 ## Setup Instructions

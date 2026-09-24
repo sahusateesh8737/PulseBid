@@ -1,0 +1,113 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Define environment variables available to all steps across jobs
+env:
+  NODE_ENV: test
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/auction_test_db
+  REDIS_URL: redis://localhost:6379
+  JWT_SECRET: ci_test_secret_not_for_production
+  PORT: 4000
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    # Explicit fail fast behavior. 
+    # This guarantees the pipeline stops completely upon hitting the first failure (like lint errors)
+    # A red X means "do not merge". Both team members must respect a Green-only merge policy.
+    continue-on-error: false
+
+    # Spin up REAL Postgres and Redis service containers (not mocked)
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: auction_test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        # Healthcheck blocks tests from running until DB is fully booted, preventing connection refused errors
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    # Target backend folder for execution space
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (version 20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - name: Install Dependencies
+        # npm ci ensures reproducible builds locked tightly to the lockfile hash, ignoring local env drift
+        run: npm ci
+
+      - name: Run ESLint
+        # Any linting failure stops the pipeline here (enforced by continue-on-error: false)
+        run: npm run lint
+
+      - name: Run DB Migrations
+        # Migrates our test_db container schema with actual dev patterns
+        run: npm run migrate
+
+      - name: Run Tests
+        # Resolves actual unit/integration tests preventing regressions
+        run: npm test
+
+      - name: Build / Syntax Check
+        # Fast structural check on core files catching rudimentary node crashes
+        run: node -c src/server.js
+
+      - name: Health Check Smoke Test
+        # End-to-end integration proving the server structurally binds to DB/Redis successfully during CI runs
+        run: |
+          # Booting the server via dev process locally in background
+          npm run dev &
+          SERVER_PID=$!
+          
+          # Allow 8 seconds leeway enabling server DB and Redis binding
+          sleep 8
+          
+          # HTTP Request ensuring 200 Return validation
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/api/v1/health)
+          
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Smoke test healthcheck FAILED. Expected HTTP 200, but resolved HTTP $HTTP_STATUS."
+            kill $SERVER_PID
+            exit 1
+          fi
+          
+          echo "Smoke test PASSED! Server is successfully integrated & healthy."
+          
+          # Clean execution exit by actively terminating async background process
+          kill $SERVER_PID
