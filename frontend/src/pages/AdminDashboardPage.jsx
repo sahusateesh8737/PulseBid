@@ -17,9 +17,10 @@ export const AdminDashboardPage = () => {
     let isMounted = true;
     const loadAuctions = async () => {
       try {
-        const res = await apiClient.get('/admin/auctions', { params: { tenantId } });
+        const res = await apiClient.get('/auctions', { params: { tenantId } });
         if (isMounted) {
-          setAuctions(res.data || res);
+          const rawData = res.data?.data || res.data || res;
+          setAuctions(Array.isArray(rawData) ? rawData : []);
           setLoading(false);
         }
       } catch (err) {

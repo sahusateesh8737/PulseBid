@@ -49,7 +49,7 @@ export const AuctionRoomPage = () => {
       try {
         const response = await apiClient.get(`/auctions/${id}`);
         if (isMounted) {
-          const a = response.data || response;
+          const a = response.data?.data || response.data || response;
           const mapped = {
             ...a,
             id: a.id,
@@ -209,7 +209,7 @@ export const AuctionRoomPage = () => {
       setTimeout(() => setFlashPrice(false), 800);
     } catch (err) {
       try {
-        await apiClient.post(`/bids/${id}`, { amount: numAmount });
+        await apiClient.post(`/auctions/${id}/bids`, { amount: numAmount });
         setBidFeedback({ type: 'success', text: 'Bid recorded via backend REST API!' });
       } catch (restErr) {
         setBidFeedback({

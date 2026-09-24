@@ -64,8 +64,8 @@ export const AuthProvider = ({ children }) => {
       // Attempt API login first
       const response = await apiClient.post('/auth/login', { email, password, tenantId: selectedTenantId });
       
-      const userData = response.data?.user || response.user;
-      const tokenData = response.data?.accessToken || response.token;
+      const userData = response.data?.data?.user || response.data?.user || response.user;
+      const tokenData = response.data?.data?.accessToken || response.data?.accessToken || response.token;
 
       setUser(userData);
       setToken(tokenData);
@@ -108,32 +108,37 @@ export const AuthProvider = ({ children }) => {
     return demoUser;
   };
 
-  const register = async (name, email, password, role = 'BIDDER', selectedTenantId = tenantId) => {
+  const register = async (name, email, password, company, selectedTenantId = tenantId) => {
     setIsLoading(true);
     setAuthError(null);
 
     try {
-      const data = await apiClient.post('/auth/register', {
+      const response = await apiClient.post('/auth/signup/create-org', {
         name,
         email,
         password,
-        role,
-        tenantId: selectedTenantId,
+        orgName: company || 'Personal Account',
+        industry: 'Other'
       });
 
-      setUser(data.user);
-      setToken(data.token);
-      setTenantId(selectedTenantId);
-      return { success: true, user: data.user };
+      const userData = response.data?.data?.user || response.data?.user || response.user;
+      const tokenData = response.data?.data?.accessToken || response.data?.accessToken || response.token;
+
+      setUser(userData);
+      setToken(tokenData);
+      if (userData?.tenantId || userData?.tenant_id) {
+        setTenantId(userData.tenantId || userData.tenant_id);
+      }
+      return { success: true, user: userData };
     } catch (err) {
       // Fallback for Demo Mode
       const newUser = {
         id: `usr_${Date.now()}`,
         name,
         email,
-        role,
+        role: 'BIDDER',
         tenantId: selectedTenantId,
-        tenantName: selectedTenantId,
+        tenantName: company || 'Personal Account',
       };
       const mockToken = `mock_token_reg_${Date.now()}`;
       setUser(newUser);

@@ -28,6 +28,7 @@ const initWebSocket = (server) => {
   });
 
   wss.on('connection', async (ws, req) => {
+    console.log('New WebSocket connection attempt:', req.url);
     ws.isAlive = true;
     websocketActiveConnections.inc();
     ws.on('pong', () => { ws.isAlive = true; });
@@ -38,6 +39,7 @@ const initWebSocket = (server) => {
       const token = url.searchParams.get('token');
       
       if (!token) {
+        console.log('WS Connection rejected: No token provided');
         ws.close(4001, 'Unauthorized: No token provided');
         return;
       }
@@ -49,7 +51,9 @@ const initWebSocket = (server) => {
         tenantId: decoded.tenantId,
         role: decoded.role
       };
+      console.log('WS Connection authenticated for user:', ws.user.userId);
     } catch (err) {
+      console.error('WS Connection rejected: Invalid token', err.message);
       ws.close(4001, 'Unauthorized: Invalid token');
       return;
     }
@@ -144,6 +148,9 @@ if (require.main === module) {
       console.error(e);
     }
     const PORT = env.PORT || 4001;
+    server.on('upgrade', (req, socket, head) => {
+      console.log('HTTP Upgrade request:', req.url, '— expected path: /ws');
+    });
     server.listen(PORT, () => {
       console.log(`WS Gateway standalone server listening on port ${PORT}`);
     });

@@ -23,16 +23,31 @@ export const DashboardOverviewPage = () => {
   const { user, activeTenant } = useAuth();
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  const [liveAuctions, setLiveAuctions] = useState([]);
 
-  const liveAuctions = INITIAL_AUCTIONS.filter((a) => a.status === 'LIVE');
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAuctions = async () => {
+      try {
+        const { default: apiClient } = await import('../api/axios');
+        const res = await apiClient.get('/auctions');
+        if (isMounted && res.data?.success) {
+          const auctions = res.data.data;
+          setLiveAuctions(auctions.filter(a => a.status === 'LIVE' || a.status === 'live'));
+        }
+      } catch (err) {
+        console.error('Failed to fetch dashboard stats', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchAuctions();
+    return () => { isMounted = false; };
+  }, []);
 
   const stats = [
     { label: 'ACTIVE LIVE AUCTIONS', value: liveAuctions.length, icon: Gavel, color: 'text-emerald-400' },
-    { label: 'MY TOTAL BIDS PLACED', value: '14 Bids', icon: History, color: 'text-brand' },
+    { label: 'MY TOTAL BIDS PLACED', value: '14 Bids', icon: History, color: 'text-brand' }, // Need to implement later
     { label: 'WON INVENTORY ALLOCATIONS', value: '2 Items', icon: Trophy, color: 'text-amber-400' },
     { label: 'PROTECTED STOCK UNITS', value: '18 Units', icon: Package, color: 'text-blue-400' },
   ];

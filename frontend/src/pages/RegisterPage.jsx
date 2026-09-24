@@ -8,7 +8,7 @@ import { Gavel, Mail, Lock, ShieldCheck, User, ArrowRight, Shield, Zap, Key, Bui
 export const RegisterPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, tenantId } = useAuth(); // Assume register is mocked by login for MVP
+  const { register, tenantId } = useAuth(); // Using register properly now
 
   const [role, setRole] = useState('BIDDER'); // BIDDER or SELLER
   const [name, setName] = useState('');
@@ -30,8 +30,7 @@ export const RegisterPage = () => {
     setIsSubmitting(true);
     setError(null);
 
-    // Using login as mock registration for MVP context
-    const result = await login(email, password, tenantId || 'tenant-alpha');
+    const result = await register(name, email, password, company, tenantId || 'tenant-alpha');
     setIsSubmitting(false);
 
     if (result.success) {

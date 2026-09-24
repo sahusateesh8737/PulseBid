@@ -8,9 +8,9 @@ exports.createProduct = async (req, res, next) => {
       req.user.tenantId,
       `INSERT INTO products (tenant_id, name, description, image_url, starting_price)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [name, description, imageUrl, startingPrice]
+      [name, description || null, imageUrl || null, startingPrice]
     );
-    return successResponse(res, 201, 'Product created', result.rows[0]);
+    return res.status(201).json(successResponse(result.rows[0], 'Product created'));
   } catch (error) {
     next(error);
   }
@@ -35,11 +35,11 @@ exports.listProducts = async (req, res, next) => {
     params.push(limit, offset);
 
     const result = await scopedQuery(req.user.tenantId, query, params);
-    return successResponse(res, 200, 'Products retrieved', {
+    return res.status(200).json(successResponse({
       products: result.rows,
       page: Number(page),
       limit: Number(limit)
-    });
+    }, 'Products retrieved'));
   } catch (error) {
     next(error);
   }
@@ -52,8 +52,8 @@ exports.getProduct = async (req, res, next) => {
       `SELECT * FROM products WHERE tenant_id = $1 AND id = $2`,
       [req.params.id]
     );
-    if (result.rows.length === 0) return errorResponse(res, 404, 'Product not found');
-    return successResponse(res, 200, 'Product retrieved', result.rows[0]);
+    if (result.rows.length === 0) return res.status(404).json(errorResponse('Product not found'));
+    return res.status(200).json(successResponse(result.rows[0], 'Product retrieved'));
   } catch (error) {
     next(error);
   }
@@ -64,7 +64,7 @@ exports.updateProduct = async (req, res, next) => {
     const { name, description, imageUrl, startingPrice, status } = req.body;
     
     const check = await scopedQuery(req.user.tenantId, `SELECT id FROM products WHERE tenant_id = $1 AND id = $2`, [req.params.id]);
-    if (check.rows.length === 0) return errorResponse(res, 404, 'Product not found');
+    if (check.rows.length === 0) return res.status(404).json(errorResponse('Product not found'));
 
     const result = await scopedQuery(
       req.user.tenantId,
@@ -78,7 +78,7 @@ exports.updateProduct = async (req, res, next) => {
        WHERE tenant_id = $1 AND id = $7 RETURNING *`,
       [name, description, imageUrl, startingPrice, status, req.params.id]
     );
-    return successResponse(res, 200, 'Product updated', result.rows[0]);
+    return res.status(200).json(successResponse(result.rows[0], 'Product updated'));
   } catch (error) {
     next(error);
   }
@@ -91,8 +91,8 @@ exports.deleteProduct = async (req, res, next) => {
       `UPDATE products SET status = 'archived', updated_at = NOW() WHERE tenant_id = $1 AND id = $2 RETURNING id`,
       [req.params.id]
     );
-    if (result.rows.length === 0) return errorResponse(res, 404, 'Product not found');
-    return successResponse(res, 200, 'Product archived');
+    if (result.rows.length === 0) return res.status(404).json(errorResponse('Product not found'));
+    return res.status(200).json(successResponse(null, 'Product archived'));
   } catch (error) {
     next(error);
   }
@@ -103,7 +103,7 @@ exports.createSeats = async (req, res, next) => {
     const { count } = req.body;
     
     const check = await scopedQuery(req.user.tenantId, `SELECT id FROM products WHERE tenant_id = $1 AND id = $2`, [req.params.id]);
-    if (check.rows.length === 0) return errorResponse(res, 404, 'Product not found');
+    if (check.rows.length === 0) return res.status(404).json(errorResponse('Product not found'));
 
     const values = [];
     for (let i = 0; i < count; i++) {
@@ -116,7 +116,7 @@ exports.createSeats = async (req, res, next) => {
       [req.params.id]
     );
     
-    return successResponse(res, 201, `${count} seats created`, result.rows);
+    return res.status(201).json(successResponse(result.rows, `${count} seats created`));
   } catch (error) {
     next(error);
   }
@@ -129,7 +129,7 @@ exports.listSeats = async (req, res, next) => {
       `SELECT * FROM seats WHERE tenant_id = $1 AND product_id = $2 ORDER BY created_at DESC`,
       [req.params.id]
     );
-    return successResponse(res, 200, 'Seats retrieved', result.rows);
+    return res.status(200).json(successResponse(result.rows, 'Seats retrieved'));
   } catch (error) {
     next(error);
   }

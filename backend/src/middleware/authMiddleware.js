@@ -31,7 +31,7 @@ const authMiddleware = (req, res, next) => {
 const requireRole = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return errorResponse(res, 403, 'Forbidden, insufficient permissions');
+      return res.status(403).json(errorResponse('Forbidden, insufficient permissions'));
     }
     next();
   };

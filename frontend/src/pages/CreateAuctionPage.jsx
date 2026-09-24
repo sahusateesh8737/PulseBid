@@ -35,25 +35,32 @@ export const CreateAuctionPage = () => {
     const startTime = new Date().toISOString();
     const endTime = new Date(Date.now() + parseInt(durationMinutes, 10) * 60 * 1000).toISOString();
 
-    const payload = {
-      tenantId,
-      title,
-      description,
-      startingPrice: parseFloat(startingPrice),
-      currentBid: parseFloat(startingPrice),
-      minIncrement: parseFloat(minIncrement),
-      totalStock: parseInt(totalStock, 10),
-      remainingStock: parseInt(totalStock, 10),
-      status: 'LIVE',
-      startTime,
-      endTime,
-    };
-
     try {
-      await apiClient.post('/admin/auctions', payload);
+      // 1. Create Product
+      const productRes = await apiClient.post('/products', {
+        name: title,
+        description,
+        startingPrice: parseFloat(startingPrice),
+        reservePrice: parseFloat(startingPrice),
+      });
+
+      const productId = productRes.data?.data?.id || productRes.data?.id;
+
+      if (!productId) {
+        throw new Error('Failed to create product. No ID returned.');
+      }
+
+      // 2. Create Auction
+      await apiClient.post('/auctions', {
+        productId,
+        startTime,
+        endTime,
+      });
+
       navigate('/admin/dashboard');
     } catch (err) {
-      navigate('/admin/dashboard');
+      console.error(err);
+      setError('Failed to create auction. Please check your inputs and try again.');
     } finally {
       setIsSubmitting(false);
     }

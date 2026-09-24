@@ -14,6 +14,7 @@ const authRoutes = require('./modules/auth/auth.routes');
 const inventoryRoutes = require('./modules/inventory/inventory.routes');
 const auctionsRoutes = require('./modules/auctions/auctions.routes');
 const bidsRoutes = require('./modules/bids/bids.routes');
+const uploadRoutes = require('./modules/upload/upload.routes');
 
 const app = express();
 
@@ -49,9 +50,10 @@ app.get('/api/v1/health', async (req, res, next) => {
 
 // Mount modular routes
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/inventory', inventoryRoutes);
+app.use('/api/v1/products', inventoryRoutes);
 app.use('/api/v1/auctions', auctionsRoutes);
-app.use('/api/v1/bids', bidsRoutes);
+app.use('/api/v1/auctions', bidsRoutes);
+app.use('/api/v1/upload', uploadRoutes);
 
 // 404 handler
 app.use((req, res, next) => {

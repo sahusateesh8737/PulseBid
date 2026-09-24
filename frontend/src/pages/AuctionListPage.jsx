@@ -25,8 +25,9 @@ export const AuctionListPage = () => {
       try {
         const response = await apiClient.get('/auctions', { params: { tenantId } });
         if (isMounted) {
-          const rawData = response.data || response;
-          const mapped = rawData.map(a => ({
+          const rawData = response.data?.data || response.data || response;
+          const dataArray = Array.isArray(rawData) ? rawData : [];
+          const mapped = dataArray.map(a => ({
             ...a,
             id: a.id,
             title: a.title || 'Live Auction',

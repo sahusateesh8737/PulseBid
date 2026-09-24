@@ -8,8 +8,8 @@ const roleMiddleware = require('../../middleware/roleMiddleware');
 router.use(authMiddleware);
 
 // Admin/Manager routes
-router.post('/', roleMiddleware(['admin', 'manager']), auctionsController.createAuction);
-router.patch('/:id/close', roleMiddleware(['admin', 'manager']), auctionsController.closeAuction);
+router.post('/', roleMiddleware(['tenant_admin', 'admin', 'manager']), auctionsController.createAuction);
+router.patch('/:id/close', roleMiddleware(['tenant_admin', 'admin', 'manager']), auctionsController.closeAuction);
 
 // General routes
 router.get('/', auctionsController.listAuctions);

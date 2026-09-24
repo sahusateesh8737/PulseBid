@@ -38,7 +38,7 @@ const createAuction = async ({ tenantId, productId, seatId, startTime, endTime, 
 
 const listAuctions = async (tenantId, status) => {
   let query = `
-    SELECT a.*, p.title as title, p.description as description, s.id as seat_id, s.current_bid, s.current_bidder_id
+    SELECT a.*, p.name as title, p.description as description, s.id as seat_id, s.current_bid, s.current_bidder_id
     FROM auctions a
     LEFT JOIN seats s ON s.auction_id = a.id
     LEFT JOIN products p ON p.id = a.product_id
@@ -57,7 +57,7 @@ const listAuctions = async (tenantId, status) => {
 
 const getAuction = async (tenantId, id) => {
   const query = `
-    SELECT a.*, p.title as product_title, p.description, 
+    SELECT a.*, p.name as product_title, p.description, 
            s.id as seat_id, s.current_bid, s.current_bidder_id,
            (SELECT COUNT(*) FROM bids b WHERE b.auction_id = a.id) as bid_count
     FROM auctions a
