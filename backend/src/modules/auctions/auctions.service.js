@@ -38,9 +38,10 @@ const createAuction = async ({ tenantId, productId, seatId, startTime, endTime, 
 
 const listAuctions = async (tenantId, status) => {
   let query = `
-    SELECT a.*, s.id as seat_id, s.current_bid, s.current_bidder_id
+    SELECT a.*, p.title as title, p.description as description, s.id as seat_id, s.current_bid, s.current_bidder_id
     FROM auctions a
     LEFT JOIN seats s ON s.auction_id = a.id
+    LEFT JOIN products p ON p.id = a.product_id
     WHERE a.tenant_id = $1
   `;
   const params = [tenantId];
@@ -91,7 +92,7 @@ const closeAuction = async (tenantId, auctionId) => {
     
     // Verify ownership and get seat
     const auctionRes = await client.query(
-      'SELECT a.*, s.id as seat_id, s.current_bidder_id FROM auctions a LEFT JOIN seats s ON s.auction_id = a.id WHERE a.id = $1 AND a.tenant_id = $2 AND a.status = $3 FOR UPDATE',
+      'SELECT a.*, s.id as seat_id, s.current_bidder_id FROM auctions a LEFT JOIN seats s ON s.auction_id = a.id WHERE a.id = $1 AND a.tenant_id = $2 AND a.status = $3 FOR UPDATE OF a',
       [auctionId, tenantId, 'live']
     );
     

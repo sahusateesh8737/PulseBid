@@ -42,9 +42,9 @@ services:
       - "4000:4000"
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/auction_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - CORS_ORIGIN=${CORS_ORIGIN}
       - PORT=4000
     depends_on:
       - postgres
@@ -60,9 +60,9 @@ services:
       - "4001:4001"
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/auction_db
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - CORS_ORIGIN=${CORS_ORIGIN}
       - PORT=4001
     depends_on:
       - postgres

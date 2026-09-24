@@ -49,8 +49,21 @@ export const AuctionRoomPage = () => {
       try {
         const response = await apiClient.get(`/auctions/${id}`);
         if (isMounted) {
-          setAuction(response.data || response);
-          setBidAmount(String((response.data?.currentBid || 0) + (response.data?.minIncrement || 25)));
+          const a = response.data || response;
+          const mapped = {
+            ...a,
+            id: a.id,
+            title: a.product_title || a.title || 'Live Auction',
+            description: a.description || 'Exclusive inventory drop',
+            status: (a.status || 'LIVE').toUpperCase(),
+            currentBid: parseFloat(a.current_bid || a.currentBid || 0),
+            minIncrement: a.min_increment || a.minIncrement || 25,
+            remainingStock: a.remaining_stock || a.remainingStock || 1,
+            totalStock: a.total_stock || a.totalStock || 1,
+            totalBids: parseInt(a.total_bids || a.totalBids || 0, 10),
+          };
+          setAuction(mapped);
+          setBidAmount(String((mapped.currentBid || 0) + (mapped.minIncrement || 25)));
           setLoading(false);
         }
       } catch (err) {
@@ -196,7 +209,7 @@ export const AuctionRoomPage = () => {
       setTimeout(() => setFlashPrice(false), 800);
     } catch (err) {
       try {
-        await apiClient.post(`/auctions/${id}/bids`, { amount: numAmount });
+        await apiClient.post(`/bids/${id}`, { amount: numAmount });
         setBidFeedback({ type: 'success', text: 'Bid recorded via backend REST API!' });
       } catch (restErr) {
         setBidFeedback({

@@ -62,14 +62,17 @@ export const AuthProvider = ({ children }) => {
 
     try {
       // Attempt API login first
-      const data = await apiClient.post('/auth/login', { email, password, tenantId: selectedTenantId });
+      const response = await apiClient.post('/auth/login', { email, password, tenantId: selectedTenantId });
       
-      setUser(data.user);
-      setToken(data.token);
-      if (data.user?.tenantId) {
-        setTenantId(data.user.tenantId);
+      const userData = response.data?.user || response.user;
+      const tokenData = response.data?.accessToken || response.token;
+
+      setUser(userData);
+      setToken(tokenData);
+      if (userData?.tenantId || userData?.tenant_id) {
+        setTenantId(userData.tenantId || userData.tenant_id);
       }
-      return { success: true, user: data.user };
+      return { success: true, user: userData };
     } catch (err) {
       // Fallback for hackathon demo mode if backend server is not running
       const matchedUser = MOCK_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase());

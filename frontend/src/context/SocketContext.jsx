@@ -9,15 +9,37 @@ const SocketContext = createContext(null);
 export const SocketProvider = ({ children }) => {
   const { token, tenantId, user } = useAuth();
   const [socket, setSocket] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState('disconnected'); // disconnected, connecting, connected, reconnecting
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const isDemoModeRef = useRef(false);
+  
+  // Custom event listener mappings (since native WS doesn't have named events)
+  const listeners = useRef(new Map());
+
+  const addListener = useCallback((event, callback) => {
+    if (!listeners.current.has(event)) {
+      listeners.current.set(event, new Set());
+    }
+    listeners.current.get(event).add(callback);
+  }, []);
+
+  const removeListener = useCallback((event, callback) => {
+    if (listeners.current.has(event)) {
+      listeners.current.get(event).delete(callback);
+    }
+  }, []);
+
+  const triggerEvent = useCallback((event, data) => {
+    if (listeners.current.has(event)) {
+      for (const callback of listeners.current.get(event)) {
+        callback(data);
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    // If no token or tenantId, close existing socket
     if (!token || !tenantId) {
       if (socket) {
-        socket.disconnect();
+        socket.close();
         setSocket(null);
         setConnectionStatus('disconnected');
       }
@@ -25,117 +47,100 @@ export const SocketProvider = ({ children }) => {
     }
 
     setConnectionStatus('connecting');
+    const wsUrl = new URL(WS_URL);
+    wsUrl.protocol = wsUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    wsUrl.pathname = '/ws';
+    wsUrl.searchParams.set('token', token);
 
-    const newSocket = io(WS_URL, {
-      auth: {
-        token,
-        tenantId,
-      },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 5000,
-      autoConnect: true,
-    });
+    const newSocket = new WebSocket(wsUrl.toString());
 
-    newSocket.on('connect', () => {
+    newSocket.onopen = () => {
       setConnectionStatus('connected');
       setReconnectAttempts(0);
-      isDemoModeRef.current = false;
-    });
+    };
 
-    newSocket.on('disconnect', (reason) => {
-      if (reason === 'io server disconnect') {
-        newSocket.connect();
+    newSocket.onclose = () => {
+      setConnectionStatus('disconnected');
+      setSocket(null);
+    };
+
+    newSocket.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        // The backend sends { type: 'bid.placed', auctionId, amount, bidderId, timestamp }
+        // Let's map it to the events the UI components expect (like 'bid:placed')
+        if (msg.type === 'bid.placed') {
+          triggerEvent('bid:placed', {
+            id: `b_${Date.now()}`,
+            auctionId: msg.auctionId,
+            amount: parseFloat(msg.amount),
+            bidderId: msg.bidderId,
+            bidderName: `User ${msg.bidderId.substring(0, 4)}`, // Mock username
+            timestamp: msg.timestamp
+          });
+        }
+        if (msg.type === 'inventory.update') {
+          triggerEvent('inventory:update', msg);
+        }
+        if (msg.type === 'reservation.confirmed') {
+          triggerEvent('reservation:confirmed', msg);
+        }
+      } catch (err) {
+        console.error('Failed to parse WS message', err);
       }
+    };
+
+    newSocket.onerror = (error) => {
+      console.error('WebSocket Error:', error);
       setConnectionStatus('disconnected');
-    });
-
-    newSocket.on('connect_error', () => {
-      setConnectionStatus((prev) => {
-        if (prev === 'connected' || prev === 'connecting') return 'reconnecting';
-        return 'disconnected';
-      });
-      setReconnectAttempts((prev) => prev + 1);
-      // Fall back to demo mode gracefully if backend server is unreachable
-      isDemoModeRef.current = true;
-    });
-
-    newSocket.io.on('reconnect_attempt', (attempt) => {
-      setConnectionStatus('reconnecting');
-      setReconnectAttempts(attempt);
-    });
-
-    newSocket.io.on('reconnect_failed', () => {
-      setConnectionStatus('disconnected');
-      // Enable simulated local socket for demo mode
-      isDemoModeRef.current = true;
-    });
+    };
 
     setSocket(newSocket);
 
     return () => {
-      newSocket.disconnect();
+      newSocket.close();
     };
   }, [token, tenantId]);
 
-  // Join a specific auction room
   const joinAuctionRoom = useCallback(
     (auctionId) => {
-      if (socket && socket.connected) {
-        socket.emit('join:auction', { auctionId, tenantId });
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ action: 'subscribe', auctionId }));
       }
     },
-    [socket, tenantId]
+    [socket]
   );
 
-  // Leave auction room
   const leaveAuctionRoom = useCallback(
     (auctionId) => {
-      if (socket && socket.connected) {
-        socket.emit('leave:auction', { auctionId, tenantId });
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ action: 'unsubscribe', auctionId }));
       }
     },
-    [socket, tenantId]
+    [socket]
   );
 
-  // Submit real-time bid via socket
   const placeBid = useCallback(
     (auctionId, amount) => {
       return new Promise((resolve, reject) => {
-        if (socket && socket.connected) {
-          socket.emit('bid:place', { auctionId, amount, tenantId }, (response) => {
-            if (response?.error) {
-              reject(new Error(response.error));
-            } else {
-              resolve(response);
-            }
-          });
-        } else {
-          // Local fallback handler if socket server is offline (Demo mode)
-          resolve({
-            success: true,
-            isDemo: true,
-            bid: {
-              id: `bid_${Date.now()}`,
-              auctionId,
-              amount,
-              bidderName: user?.name || 'Anonymous Bidder',
-              bidderId: user?.id || 'usr_bidder_1',
-              timestamp: new Date().toISOString(),
-            },
-          });
-        }
+        // Native WS doesn't have a built-in ACK for placeBid like Socket.io
+        // Instead, the frontend should use the REST API for placing bids!
+        // We will throw an error to fallback to REST API in AuctionRoomPage.jsx
+        reject(new Error('Use REST API to place bid'));
       });
     },
-    [socket, tenantId, user]
+    []
   );
 
   return (
     <SocketContext.Provider
       value={{
-        socket,
+        socket: {
+          connected: connectionStatus === 'connected',
+          on: addListener,
+          off: removeListener,
+          emit: () => {}
+        },
         connectionStatus,
         reconnectAttempts,
         isLiveConnected: connectionStatus === 'connected',

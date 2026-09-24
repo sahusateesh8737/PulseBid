@@ -25,7 +25,20 @@ export const AuctionListPage = () => {
       try {
         const response = await apiClient.get('/auctions', { params: { tenantId } });
         if (isMounted) {
-          setAuctions(response.data || response);
+          const rawData = response.data || response;
+          const mapped = rawData.map(a => ({
+            ...a,
+            id: a.id,
+            title: a.title || 'Live Auction',
+            description: a.description || 'Exclusive inventory drop',
+            status: (a.status || 'LIVE').toUpperCase(),
+            currentBid: parseFloat(a.current_bid || a.currentBid || 0),
+            minIncrement: a.min_increment || a.minIncrement || 25,
+            remainingStock: a.remaining_stock || a.remainingStock || 1,
+            totalStock: a.total_stock || a.totalStock || 1,
+            totalBids: parseInt(a.total_bids || a.totalBids || 0, 10),
+          }));
+          setAuctions(mapped);
           setLoading(false);
         }
       } catch (err) {
