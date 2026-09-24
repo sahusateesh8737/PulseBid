@@ -7,6 +7,7 @@ const { pool } = require('./config/db');
 const redisClient = require('./config/redis');
 const requestLogger = require('./middleware/requestLogger');
 const errorHandler = require('./middleware/errorHandler');
+const { register, httpMetricsMiddleware } = require('./metrics/metrics');
 
 // Route imports
 const authRoutes = require('./modules/auth/auth.routes');
@@ -22,6 +23,13 @@ app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(requestLogger);
+app.use(httpMetricsMiddleware);
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 
 // Health check route
 app.get('/api/v1/health', async (req, res, next) => {

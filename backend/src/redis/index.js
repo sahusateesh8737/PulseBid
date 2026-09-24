@@ -1,6 +1,7 @@
 const redisClient = require('../config/redis');
 const env = require('../config/env');
 const { createClient } = require('redis');
+const { redisLockAcquisitionCounter, websocketMessagesPublished } = require('../metrics/metrics');
 
 // Create separate clients for Pub/Sub
 const pubClient = redisClient; // Can reuse main client for publishing
@@ -26,7 +27,9 @@ const acquireLock = async (key, requestId, ttlMs = 3000) => {
       NX: true,
       PX: ttlMs,
     });
-    return result === 'OK';
+    const acquired = result === 'OK';
+    redisLockAcquisitionCounter.labels(acquired ? 'acquired' : 'failed').inc();
+    return acquired;
   } catch (error) {
     console.error('Lock acquisition error', error);
     return false;
@@ -64,6 +67,9 @@ const releaseLock = async (key, requestId) => {
 const publishEvent = async (channel, eventPayload) => {
   try {
     await pubClient.publish(channel, JSON.stringify(eventPayload));
+    if (eventPayload && eventPayload.type) {
+      websocketMessagesPublished.labels(eventPayload.type).inc();
+    }
   } catch (error) {
     console.error(`Error publishing to channel ${channel}`, error);
   }

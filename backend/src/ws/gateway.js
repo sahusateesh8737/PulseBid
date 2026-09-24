@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const { pool } = require('../config/db');
 const { subClient } = require('../redis');
+const { websocketActiveConnections, register } = require('../metrics/metrics');
 
 // In-memory mapping of channel to Set of WebSocket clients
 const subscriptions = new Map();
@@ -28,6 +29,7 @@ const initWebSocket = (server) => {
 
   wss.on('connection', async (ws, req) => {
     ws.isAlive = true;
+    websocketActiveConnections.inc();
     ws.on('pong', () => { ws.isAlive = true; });
 
     try {
@@ -85,6 +87,7 @@ const initWebSocket = (server) => {
     });
 
     ws.on('close', () => {
+      websocketActiveConnections.dec();
       // Cleanup subscriptions
       if (ws.subscribedChannels) {
         for (const channel of ws.subscribedChannels) {
@@ -119,3 +122,31 @@ const initWebSocket = (server) => {
 module.exports = {
   initWebSocket,
 };
+
+if (require.main === module) {
+  const http = require('http');
+  const server = http.createServer(async (req, res) => {
+    if (req.url === '/metrics' && req.method === 'GET') {
+      res.setHeader('Content-Type', register.contentType);
+      res.end(await register.metrics());
+    } else {
+      res.statusCode = 404;
+      res.end('Not Found');
+    }
+  });
+
+  const redisClient = require('../config/redis');
+  (async () => {
+    try {
+      if (!redisClient.isOpen) await redisClient.connect();
+      if (!subClient.isOpen) await subClient.connect();
+    } catch (e) {
+      console.error(e);
+    }
+    const PORT = env.PORT || 4001;
+    server.listen(PORT, () => {
+      console.log(`WS Gateway standalone server listening on port ${PORT}`);
+    });
+    initWebSocket(server);
+  })();
+}

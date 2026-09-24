@@ -85,3 +85,20 @@ req.user = {
 | DELETE | `/products/:id`          | -                                                                    | Soft-deleted, archived status set |
 | POST   | `/products/:id/seats`    | `{ count: 5 }`                                                       | Array of created seats |
 | GET    | `/products/:id/seats`    | -                                                                    | Array of product seats |
+
+## Monitoring
+
+This project includes Prometheus and Grafana for real-time monitoring of system performance.
+
+- **Prometheus UI:** [http://localhost:9090](http://localhost:9090)
+- **Grafana UI:** [http://localhost:3001](http://localhost:3001) (Login: `admin` / `<password_from_env>`)
+
+The Grafana instance is automatically provisioned with the Prometheus datasource and a pre-built **Auction Overview** dashboard. 
+
+**Available Metrics Displayed on Dashboard:**
+- Bid Request Latency (p50/p95/p99)
+- Requests per Second
+- Bid Rejection Reasons (lock_held, bid_too_low, duplicate_idempotency_key)
+- Redis Lock Success vs Failure Rate
+- Active WebSocket Connections
+- Node.js Memory & Event Loop Lag

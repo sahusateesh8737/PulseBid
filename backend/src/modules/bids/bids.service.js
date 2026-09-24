@@ -1,5 +1,6 @@
 const { pool } = require('../../config/db');
 const { acquireLock, releaseLock, publishEvent } = require('../../redis');
+const { bidRejectedCounter } = require('../../metrics/metrics');
 
 const placeBid = async ({ tenantId, userId, auctionId, amount, idempotencyKey, requestId }) => {
   // First, get the seatId for this auction (Fast read)
@@ -18,6 +19,7 @@ const placeBid = async ({ tenantId, userId, auctionId, amount, idempotencyKey, r
   const { seat_id: seatId, status: auctionStatus } = seatRes.rows[0];
 
   if (auctionStatus !== 'live') {
+    bidRejectedCounter.labels('auction_not_live', tenantId).inc();
     return { success: false, status: 400, message: 'Auction is not live' };
   }
 
@@ -25,6 +27,7 @@ const placeBid = async ({ tenantId, userId, auctionId, amount, idempotencyKey, r
   const lockKey = `lock:seat:${seatId}`;
   const locked = await acquireLock(lockKey, requestId, 3000);
   if (!locked) {
+    bidRejectedCounter.labels('lock_held', tenantId).inc();
     return { success: false, status: 409, message: 'A higher bid is being processed, please retry' };
   }
 
@@ -43,6 +46,7 @@ const placeBid = async ({ tenantId, userId, auctionId, amount, idempotencyKey, r
     // 2. Business logic check
     if (parseFloat(amount) <= parseFloat(current_bid)) {
       await client.query('ROLLBACK');
+      bidRejectedCounter.labels('bid_too_low', tenantId).inc();
       return { success: false, status: 409, message: 'Bid too low' };
     }
 
@@ -53,6 +57,7 @@ const placeBid = async ({ tenantId, userId, auctionId, amount, idempotencyKey, r
     );
     if (existingBidRes.rows.length > 0) {
       await client.query('ROLLBACK');
+      bidRejectedCounter.labels('duplicate_idempotency_key', tenantId).inc();
       // Return the previous result
       return { success: true, data: existingBidRes.rows[0] };
     }
