@@ -26,9 +26,11 @@ const runLoadTest = async () => {
   await pool.query(`INSERT INTO seats (id, auction_id, current_bid, version) VALUES ($1, $2, 10, 0)`, [seatId, auctionId]);
 
   // Generate a mock JWT for the test
-  // In a real scenario, teammate 1 issues this, but we'll manually sign it here.
-  // Wait, our mock middleware right now overrides req.user, so the JWT might not strictly be needed, 
-  // BUT let's assume we pass the auth layer anyway.
+  const token = jwt.sign(
+    { userId, tenantId, role: 'user' },
+    process.env.JWT_SECRET || 'change_this_in_production',
+    { expiresIn: '1h' }
+  );
   
   console.log('Seeded database. Starting load test...');
 
@@ -45,7 +47,7 @@ const runLoadTest = async () => {
         path: `/api/v1/bids/${auctionId}`,
         headers: {
           'Content-type': 'application/json',
-          // 'Authorization': `Bearer ${token}` // If using real auth middleware
+          'Authorization': `Bearer ${token}`
         },
         setupRequest: (req, context) => {
           req.body = JSON.stringify({
