@@ -1,11 +1,42 @@
-/**
- * TODO for Teammate 2: Implement bids controllers
- */
+const asyncHandler = require('../../utils/asyncHandler');
+const { successResponse, errorResponse } = require('../../utils/apiResponse');
+const bidsService = require('./bids.service');
+const crypto = require('crypto');
 
-const placeBid = async (req, res, next) => {
-  // STUB
-  res.status(200).json({ message: 'place bid stub' });
-};
+const placeBid = asyncHandler(async (req, res) => {
+  const { auctionId } = req.params;
+  const { amount, idempotencyKey } = req.body;
+  const { userId, tenantId } = req.user;
+
+  if (!amount) {
+    return res.status(400).json(errorResponse('Amount is required'));
+  }
+
+  // Auto-generate idempotency key if not provided (though clients should provide it)
+  const safeIdempotencyKey = idempotencyKey || crypto.randomUUID();
+  const requestId = crypto.randomUUID();
+
+  const start = process.hrtime.bigint(); // For latency tracking
+
+  const result = await bidsService.placeBid({
+    tenantId,
+    userId,
+    auctionId,
+    amount,
+    idempotencyKey: safeIdempotencyKey,
+    requestId
+  });
+
+  const end = process.hrtime.bigint();
+  const latencyMs = Number(end - start) / 1000000;
+  console.log(`Bid processing latency: ${latencyMs.toFixed(2)}ms`);
+
+  if (!result.success) {
+    return res.status(result.status || 400).json(errorResponse(result.message));
+  }
+
+  res.status(201).json(successResponse(result.data, 'Bid placed successfully'));
+});
 
 module.exports = {
   placeBid,

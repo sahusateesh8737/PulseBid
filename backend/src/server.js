@@ -3,6 +3,7 @@ const env = require('./config/env');
 const { pool } = require('./config/db');
 const redisClient = require('./config/redis');
 const { initWebSocket } = require('./ws/gateway');
+const { startWorkers } = require('./workers/index');
 
 const PORT = env.PORT || 4000;
 
@@ -23,6 +24,9 @@ const PORT = env.PORT || 4000;
 
   // Initialize WebSocket Server on the same port
   initWebSocket(server);
+
+  // Start background workers
+  startWorkers();
 
   // Graceful shutdown
   const gracefulShutdown = async () => {

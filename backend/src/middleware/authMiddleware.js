@@ -8,7 +8,7 @@ const { errorResponse } = require('../utils/apiResponse');
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return errorResponse(res, 401, 'Unauthorized, missing token');
+    return res.status(401).json({ success: false, message: 'Unauthorized, missing token' });
   }
 
   const token = authHeader.split(' ')[1];
@@ -21,7 +21,7 @@ const authMiddleware = (req, res, next) => {
     };
     next();
   } catch (error) {
-    return errorResponse(res, 401, 'Unauthorized, invalid token');
+    return res.status(401).json({ success: false, message: 'Unauthorized, invalid token' });
   }
 };
 
