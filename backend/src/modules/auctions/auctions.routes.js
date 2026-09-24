@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auctionsController = require('./auctions.controller');
-const authMiddleware = require('../../middleware/authMiddleware');
+const { authMiddleware } = require('../../middleware/authMiddleware');
 const roleMiddleware = require('../../middleware/roleMiddleware');
 
 // All auction routes require authentication

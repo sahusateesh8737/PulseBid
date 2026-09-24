@@ -1,0 +1,15 @@
+
+> backend@1.0.0 lint
+> eslint src/
+
+
+Oops! Something went wrong! :(
+
+ESLint: 8.57.0
+
+ESLint couldn't find the config "prettier" to extend from. Please check that the name of the config is correct.
+
+The config "prettier" was referenced from the config file in "D:\PulseBid\backend\.eslintrc.json".
+
+If you still have problems, please stop by https://eslint.org/chat/help to chat with the team.
+
