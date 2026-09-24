@@ -1,26 +1,40 @@
+const jwt = require('jsonwebtoken');
+const env = require('../config/env');
 const { errorResponse } = require('../utils/apiResponse');
 
 /**
- * TODO for Teammate 1: Implement JWT verification
- * 
- * Contract:
- * If valid, this middleware must attach the decoded user object to req.user:
- * req.user = {
- *   userId: '123',
- *   tenantId: 'abc',
- *   role: 'user' // or 'admin', etc.
- * }
- * 
- * If invalid or missing, it should return an error using errorResponse().
+ * Validates JWT from Authorization header and attaches payload to req.user
  */
 const authMiddleware = (req, res, next) => {
-  // STUB: Replace with actual JWT logic
-  req.user = {
-    userId: 'stub-user-id',
-    tenantId: 'stub-tenant-id',
-    role: 'user',
-  };
-  next();
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return errorResponse(res, 401, 'Unauthorized, missing token');
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET);
+    req.user = {
+      userId: payload.userId,
+      tenantId: payload.tenantId,
+      role: payload.role
+    };
+    next();
+  } catch (error) {
+    return errorResponse(res, 401, 'Unauthorized, invalid token');
+  }
 };
 
-module.exports = authMiddleware;
+/**
+ * Validates role based on req.user.role array
+ */
+const requireRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return errorResponse(res, 403, 'Forbidden, insufficient permissions');
+    }
+    next();
+  };
+};
+
+module.exports = { authMiddleware, requireRole };

@@ -56,3 +56,31 @@ req.user = {
   role: String 
 };
 ```
+
+## API Documentation (Auth & Inventory)
+
+### Authentication (`/api/v1/auth`)
+
+| Method | Endpoint             | Body                                                                 | Response (Success) |
+|--------|----------------------|----------------------------------------------------------------------|--------------------|
+| POST   | `/signup/create-org` | `{ name, email, password, orgName, industry? }`                      | `{ accessToken, user }`, Sets `refreshToken` cookie |
+| POST   | `/signup/join-org`   | `{ name, email, password, inviteCode }`                              | `{ accessToken, user }`, Sets `refreshToken` cookie |
+| POST   | `/login`             | `{ email, password }`                                                | `{ accessToken, user }`, Sets `refreshToken` cookie |
+| POST   | `/refresh`           | (Uses `refreshToken` cookie)                                         | `{ accessToken }` |
+| POST   | `/logout`            | (Uses `refreshToken` cookie)                                         | Clears cookie |
+| GET    | `/me`                | -                                                                    | `{ user }` |
+| POST   | `/invites`           | `{ role_to_assign: "user", expiresInDays: 7 }` (Admin only)          | `{ code, expires_at }` |
+
+### Inventory Management (`/api/v1/inventory`)
+
+*Note: All inventory endpoints are strictly isolated by `tenantId` extracted from the JWT token.*
+
+| Method | Endpoint                 | Body                                                                 | Response (Success) |
+|--------|--------------------------|----------------------------------------------------------------------|--------------------|
+| POST   | `/products`              | `{ name, description?, imageUrl?, startingPrice }`                   | Created product |
+| GET    | `/products`              | Query: `?status=available&page=1&limit=20`                           | `{ products, page, limit }` |
+| GET    | `/products/:id`          | -                                                                    | Single product |
+| PUT    | `/products/:id`          | `{ name?, description?, imageUrl?, startingPrice?, status? }`        | Updated product |
+| DELETE | `/products/:id`          | -                                                                    | Soft-deleted, archived status set |
+| POST   | `/products/:id/seats`    | `{ count: 5 }`                                                       | Array of created seats |
+| GET    | `/products/:id/seats`    | -                                                                    | Array of product seats |
