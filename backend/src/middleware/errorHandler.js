@@ -1,6 +1,7 @@
 const { errorResponse } = require('../utils/apiResponse');
 const env = require('../config/env');
 
+// eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, next) => {
   console.error(err); // Log the error
 

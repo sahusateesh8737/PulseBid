@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export const DashboardOverviewPage = () => {
-  const { user, activeTenant } = useAuth();
+  const { user, activeTenant, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
 
   const [liveAuctions, setLiveAuctions] = useState([]);
@@ -45,12 +45,20 @@ export const DashboardOverviewPage = () => {
     return () => { isMounted = false; };
   }, []);
 
-  const stats = [
+  const adminStats = [
     { label: 'ACTIVE LIVE AUCTIONS', value: liveAuctions.length, icon: Gavel, color: 'text-emerald-400' },
-    { label: 'MY TOTAL BIDS PLACED', value: '14 Bids', icon: History, color: 'text-brand' }, // Need to implement later
-    { label: 'WON INVENTORY ALLOCATIONS', value: '2 Items', icon: Trophy, color: 'text-amber-400' },
-    { label: 'PROTECTED STOCK UNITS', value: '18 Units', icon: Package, color: 'text-blue-400' },
+    { label: 'PROTECTED STOCK UNITS', value: '18 Units', icon: Package, color: 'text-blue-400' }, // Hardcoded mock
+    { label: 'TOTAL REVENUE', value: '$12,450', icon: TrendingUp, color: 'text-emerald-400' }, // Hardcoded mock
+    { label: 'SUCCESSFUL AUCTIONS', value: '4', icon: Trophy, color: 'text-amber-400' }, // Hardcoded mock
   ];
+
+  const bidderStats = [
+    { label: 'ACTIVE LIVE AUCTIONS', value: liveAuctions.length, icon: Gavel, color: 'text-emerald-400' },
+    { label: 'MY TOTAL BIDS PLACED', value: '14 Bids', icon: History, color: 'text-brand' }, // Hardcoded mock
+    { label: 'WON INVENTORY ALLOCATIONS', value: '2 Items', icon: Trophy, color: 'text-amber-400' }, // Hardcoded mock
+  ];
+
+  const stats = isAdmin ? adminStats : bidderStats;
 
   if (loading) {
     return (

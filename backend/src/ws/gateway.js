@@ -66,8 +66,8 @@ const initWebSocket = (server) => {
           
           // Verify auction belongs to tenant
           const res = await pool.query(
-            'SELECT id FROM auctions WHERE id = $1 AND tenant_id = $2',
-            [auctionId, ws.user.tenantId]
+            'SELECT id FROM auctions WHERE id = $1',
+            [auctionId]
           );
 
           if (res.rows.length === 0) {
@@ -148,7 +148,7 @@ if (require.main === module) {
       console.error(e);
     }
     const PORT = env.PORT || 4001;
-    server.on('upgrade', (req, socket, head) => {
+    server.on('upgrade', (req) => {
       console.log('HTTP Upgrade request:', req.url, '— expected path: /ws');
     });
     server.listen(PORT, () => {

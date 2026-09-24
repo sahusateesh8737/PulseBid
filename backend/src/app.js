@@ -56,7 +56,7 @@ app.use('/api/v1/auctions', bidsRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 
 // 404 handler
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({ success: false, message: 'API route not found' });
 });
 

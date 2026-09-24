@@ -108,18 +108,28 @@ export const AuthProvider = ({ children }) => {
     return demoUser;
   };
 
-  const register = async (name, email, password, company, selectedTenantId = tenantId) => {
+  const register = async (role, name, email, password, company, selectedTenantId = tenantId) => {
     setIsLoading(true);
     setAuthError(null);
 
     try {
-      const response = await apiClient.post('/auth/signup/create-org', {
-        name,
-        email,
-        password,
-        orgName: company || 'Personal Account',
-        industry: 'Other'
-      });
+      let response;
+      if (role === 'BIDDER') {
+        response = await apiClient.post('/auth/signup/bidder', {
+          name,
+          email,
+          password,
+          tenantId: selectedTenantId
+        });
+      } else {
+        response = await apiClient.post('/auth/signup/create-org', {
+          name,
+          email,
+          password,
+          orgName: company || 'Personal Account',
+          industry: 'Other'
+        });
+      }
 
       const userData = response.data?.data?.user || response.data?.user || response.user;
       const tokenData = response.data?.data?.accessToken || response.data?.accessToken || response.token;
@@ -136,7 +146,7 @@ export const AuthProvider = ({ children }) => {
         id: `usr_${Date.now()}`,
         name,
         email,
-        role: 'BIDDER',
+        role: role,
         tenantId: selectedTenantId,
         tenantName: company || 'Personal Account',
       };
@@ -173,7 +183,7 @@ export const AuthProvider = ({ children }) => {
         tenantId,
         activeTenant,
         isAuthenticated: !!user && !!token,
-        isAdmin: user?.role === 'ADMIN',
+        isAdmin: user?.role === 'ADMIN' || user?.role === 'SELLER' || user?.role === 'tenant_admin',
         isLoading,
         authError,
         login,

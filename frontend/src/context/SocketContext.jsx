@@ -104,8 +104,13 @@ export const SocketProvider = ({ children }) => {
 
   const joinAuctionRoom = useCallback(
     (auctionId) => {
-      if (socket && socket.readyState === WebSocket.OPEN) {
+      if (!socket) return;
+      if (socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ action: 'subscribe', auctionId }));
+      } else if (socket.readyState === WebSocket.CONNECTING) {
+        socket.addEventListener('open', () => {
+          socket.send(JSON.stringify({ action: 'subscribe', auctionId }));
+        }, { once: true });
       }
     },
     [socket]

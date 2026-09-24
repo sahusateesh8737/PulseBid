@@ -22,13 +22,20 @@ export const Sidebar = ({ isOpen, onClose, isCollapsed, toggleCollapse }) => {
   const { isAdmin, activeTenant } = useAuth();
   const location = useLocation();
 
-  const mainNav = [
+  const bidderNav = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Live Auctions', path: '/auctions', icon: Gavel },
-    { label: 'Inventory', path: '/inventory', icon: Package },
     { label: 'My Bids', path: '/my-bids', icon: History },
     { label: 'My Wins', path: '/my-wins', icon: Trophy },
   ];
+
+  const sellerNav = [
+    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { label: 'Live Auctions', path: '/auctions', icon: Gavel },
+    { label: 'Inventory', path: '/inventory', icon: Package },
+  ];
+
+  const mainNav = isAdmin ? sellerNav : bidderNav;
 
   const adminNav = [
     { label: 'Admin Overview', path: '/admin/dashboard', icon: ShieldAlert },

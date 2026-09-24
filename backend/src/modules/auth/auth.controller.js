@@ -20,6 +20,32 @@ const setRefreshCookie = (res, refreshToken) => {
   });
 };
 
+exports.signupBidder = async (req, res, next) => {
+  try {
+    const { name, email, password, tenantId } = req.body;
+    
+    const emailCheck = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (emailCheck.rows.length > 0) return res.status(400).json({ success: false, message: 'Email already in use' });
+
+    const tenantCheck = await query('SELECT id FROM tenants WHERE id = $1', [tenantId]);
+    if (tenantCheck.rows.length === 0) return res.status(400).json({ success: false, message: 'Invalid tenant' });
+
+    const hash = await bcrypt.hash(password, 10);
+    const userRes = await query(
+      `INSERT INTO users (tenant_id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, 'user') RETURNING id, tenant_id, name, email, role`,
+      [tenantId, name, email, hash]
+    );
+
+    const user = userRes.rows[0];
+    const { accessToken, refreshToken } = generateTokens(user);
+    setRefreshCookie(res, refreshToken);
+
+    return res.status(201).json({ success: true, message: 'Account created', data: { accessToken, user } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.createOrg = async (req, res, next) => {
   try {
     const { name, email, password, orgName, industry } = req.body;
@@ -104,6 +130,7 @@ exports.login = async (req, res, next) => {
     const { accessToken, refreshToken } = generateTokens(user);
     setRefreshCookie(res, refreshToken);
 
+    // eslint-disable-next-line no-unused-vars
     const { password_hash, ...profile } = user;
     return res.status(200).json({ success: true, message: 'Logged in successfully', data: { accessToken, user: profile } });
   } catch (error) {
@@ -111,7 +138,7 @@ exports.login = async (req, res, next) => {
   }
 };
 
-exports.refresh = async (req, res, next) => {
+exports.refresh = async (req, res) => {
   try {
     const { refreshToken } = req.cookies;
     if (!refreshToken) return res.status(401).json({ success: false, message: 'No refresh token provided' });
@@ -159,7 +186,7 @@ exports.createInvite = async (req, res, next) => {
     const code = crypto.randomBytes(8).toString('hex');
     const inviteRes = await query(
       `INSERT INTO invites (tenant_id, code, role_to_assign, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL '1 day' * $4) RETURNING code, expires_at`,
-      [req.user.tenantId, role_to_assign, expiresInDays]
+      [req.user.tenantId, code, role_to_assign, expiresInDays]
     );
     return res.status(201).json({ success: true, message: 'Invite created', data: inviteRes.rows[0] });
   } catch (error) {

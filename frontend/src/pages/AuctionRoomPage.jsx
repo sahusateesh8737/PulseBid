@@ -61,6 +61,7 @@ export const AuctionRoomPage = () => {
             remainingStock: a.remaining_stock || a.remainingStock || 1,
             totalStock: a.total_stock || a.totalStock || 1,
             totalBids: parseInt(a.total_bids || a.totalBids || 0, 10),
+            endTime: a.end_time || a.endTime,
           };
           setAuction(mapped);
           setBidAmount(String((mapped.currentBid || 0) + (mapped.minIncrement || 25)));

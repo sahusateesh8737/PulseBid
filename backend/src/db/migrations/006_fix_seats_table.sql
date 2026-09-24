@@ -1,0 +1,2 @@
+ALTER TABLE seats ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id);
+ALTER TABLE seats ADD COLUMN IF NOT EXISTS product_id UUID REFERENCES products(id);

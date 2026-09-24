@@ -1,6 +1,4 @@
 const redisClient = require('../config/redis');
-const env = require('../config/env');
-const { createClient } = require('redis');
 const { redisLockAcquisitionCounter, websocketMessagesPublished } = require('../metrics/metrics');
 
 // Create separate clients for Pub/Sub

@@ -2,7 +2,7 @@
  * TODO for Teammate 1: Implement auth service logic
  */
 
-const authenticate = async (credentials) => {
+const authenticate = async (/* credentials */) => {
   // STUB
   return { token: 'stub-token' };
 };

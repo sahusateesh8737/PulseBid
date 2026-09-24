@@ -12,7 +12,7 @@ const createAuction = async ({ tenantId, productId, seatId, startTime, endTime, 
 
     const res = await client.query(
       `INSERT INTO auctions (tenant_id, product_id, start_time, end_time, status)
-       VALUES ($1, $2, $3, $4, 'upcoming') RETURNING *`,
+       VALUES ($1, $2, $3, $4, 'live') RETURNING *`,
       [tenantId, productId, startTime, endTime]
     );
     const auction = res.rows[0];
@@ -42,11 +42,11 @@ const listAuctions = async (tenantId, status) => {
     FROM auctions a
     LEFT JOIN seats s ON s.auction_id = a.id
     LEFT JOIN products p ON p.id = a.product_id
-    WHERE a.tenant_id = $1
+    WHERE 1=1
   `;
-  const params = [tenantId];
+  const params = [];
   if (status) {
-    query += ` AND a.status = $2`;
+    query += ` AND a.status = $1`;
     params.push(status);
   }
   query += ` ORDER BY a.created_at DESC`;
@@ -63,15 +63,15 @@ const getAuction = async (tenantId, id) => {
     FROM auctions a
     JOIN products p ON p.id = a.product_id
     LEFT JOIN seats s ON s.auction_id = a.id
-    WHERE a.id = $1 AND a.tenant_id = $2
+    WHERE a.id = $1
   `;
-  const res = await pool.query(query, [id, tenantId]);
+  const res = await pool.query(query, [id]);
   return res.rows[0];
 };
 
 const getAuctionBids = async (tenantId, id, limit, offset) => {
   // First ensure auction belongs to tenant
-  const authCheck = await pool.query('SELECT id FROM auctions WHERE id = $1 AND tenant_id = $2', [id, tenantId]);
+  const authCheck = await pool.query('SELECT id FROM auctions WHERE id = $1', [id]);
   if (authCheck.rows.length === 0) return null;
 
   const query = `

@@ -65,21 +65,21 @@ export const AppRoutes = () => {
       <Route
         path="/inventory"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <AppLayout>
               <InventoryPage />
             </AppLayout>
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
       <Route
         path="/inventory/:id"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <AppLayout>
               <ProductDetailPage />
             </AppLayout>
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
       <Route

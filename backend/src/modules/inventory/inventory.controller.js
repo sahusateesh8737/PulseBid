@@ -76,7 +76,14 @@ exports.updateProduct = async (req, res, next) => {
            status = COALESCE($6, status),
            updated_at = NOW()
        WHERE tenant_id = $1 AND id = $7 RETURNING *`,
-      [name, description, imageUrl, startingPrice, status, req.params.id]
+      [
+        name !== undefined ? name : null, 
+        description !== undefined ? description : null, 
+        imageUrl !== undefined ? imageUrl : null, 
+        startingPrice !== undefined ? startingPrice : null, 
+        status !== undefined ? status : null, 
+        req.params.id
+      ]
     );
     return res.status(200).json(successResponse(result.rows[0], 'Product updated'));
   } catch (error) {

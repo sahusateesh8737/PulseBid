@@ -8,8 +8,8 @@ const placeBid = async ({ tenantId, userId, auctionId, amount, idempotencyKey, r
     `SELECT s.id as seat_id, a.status 
      FROM seats s 
      JOIN auctions a ON a.id = s.auction_id 
-     WHERE a.id = $1 AND a.tenant_id = $2`,
-    [auctionId, tenantId]
+     WHERE a.id = $1`,
+    [auctionId]
   );
 
   if (seatRes.rows.length === 0) {
